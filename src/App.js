@@ -2,7 +2,7 @@
  * If not stated otherwise in this file or this component's LICENSE file the
  * following copyright and licenses apply:
  *
- * Copyright 2020 Metrological
+ * Copyright 2020 Metroconsoleical
  *
  * Licensed under the Apache License, Version 2.0 (the License);
  * you may not use this file except in compliance with the License.
@@ -17,55 +17,139 @@
  * limitations under the License.
  */
 
-import { Lightning, Utils } from '@lightningjs/sdk'
+import { Lightning, Utils, VideoPlayer } from '@lightningjs/sdk'
+import Button from './components/Button'
+import { hlsUnloader, hlsLoader } from './lib/hls'
 
 export default class App extends Lightning.Component {
-  static getFonts() {
-    return [{ family: 'Regular', url: Utils.asset('fonts/Roboto-Regular.ttf') }]
-  }
-
   static _template() {
     return {
       Background: {
         w: 1920,
         h: 1080,
-        color: 0xfffbb03b,
-        src: Utils.asset('images/background.png'),
-      },
-      Logo: {
-        mountX: 0.5,
-        mountY: 1,
-        x: 960,
-        y: 600,
-        src: Utils.asset('images/logo.png'),
-      },
-      Text: {
-        mount: 0.5,
-        x: 960,
-        y: 720,
-        text: {
-          text: "Let's start Building!",
-          fontFace: 'Regular',
-          fontSize: 64,
-          textColor: 0xbbffffff,
+        rect: true,
+        color: 0xff000000,
+        MovieTile: {
+          x: window.innerWidth / 2,
+          y: 250,
+          w: 300,
+          h: 400,
+          mount: 0.5,
+          src: Utils.asset('images/big_buck_bunny_poster.jpg'),
+        },
+        PlayButton: {
+          x: window.innerWidth / 2 - 200,
+          y: window.innerHeight / 2,
+          type: Button,
+          label: 'Play',
+        },
+        ExitButton: {
+          x: window.innerWidth / 2,
+          y: window.innerHeight / 2,
+          type: Button,
+          label: 'Exit',
         },
       },
     }
   }
 
+  get Background() {
+    return this.tag('Background')
+  }
+
   _init() {
-    this.tag('Background')
-      .animation({
-        duration: 15,
-        repeat: -1,
-        actions: [
-          {
-            t: '',
-            p: 'color',
-            v: { 0: { v: 0xfffbb03b }, 0.5: { v: 0xfff46730 }, 0.8: { v: 0xfffbb03b } },
-          },
-        ],
-      })
-      .start()
+    this._setState('Menu')
+
+    VideoPlayer.consumer(this)
+    VideoPlayer.loader(hlsLoader)
+    VideoPlayer.unloader(hlsUnloader)
+  }
+
+  _startVideo() {
+    const playerSettings = { debug: true }
+
+    VideoPlayer.area(0, 0, 100, 100)
+    VideoPlayer.open(
+      'https://bitdash-a.akamaihd.net/content/MI201109210084_1/m3u8s/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.m3u8',
+      playerSettings,
+    )
+
+    console.info('Video playing with HLS.js player')
+  }
+
+  $videoPlayerError(data) {
+    console.error('Error playing video', data)
+  }
+
+  $videoPlayerEvent(event, eventData) {
+    console.info({ event, eventData })
+  }
+
+  $videoPlayerPlaying() {
+    this.Background.visible = false
+  }
+
+  $videoPlayerEnded() {
+    this._setState('Menu')
+  }
+
+  static _states() {
+    return [
+      class Menu extends this {
+        $enter() {
+          this.Background.visible = true
+          this._focusedElement = this.tag('PlayButton')
+        }
+
+        $exit() {
+          this.Background.visible = false
+        }
+
+        _handleLeft() {
+          this._focusedElement = this.tag('PlayButton')
+        }
+
+        _handleRight() {
+          this._focusedElement = this.tag('ExitButton')
+        }
+
+        _getFocused() {
+          return this._focusedElement
+        }
+
+        _handleEnter() {
+          if (this._focusedElement === this.tag('PlayButton')) {
+            this._setState('Video')
+          } else {
+            console.log('Exit button')
+          }
+        }
+      },
+      class Video extends this {
+        $enter() {
+          this._startVideo()
+        }
+
+        $exit() {
+          VideoPlayer.clear()
+        }
+
+        _handleEnter() {
+          VideoPlayer.playPause()
+        }
+
+        _handleRight() {
+          VideoPlayer.skip(10)
+        }
+
+        _handleLeft() {
+          VideoPlayer.skip(-10)
+        }
+
+        _handleBack() {
+          this._setState('Menu')
+        }
+      },
+    ]
   }
 }

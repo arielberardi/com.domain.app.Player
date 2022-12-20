@@ -2,7 +2,8 @@
   "name": "com.domain.app.DSSPlayer",
   "description": "DSS Player",
   "dependencies": {
-    "@lightningjs/sdk": "^5.2.0"
+    "@lightningjs/sdk": "^5.2.0",
+    "hls.js": "^1.1.5"
   },
   "lint-staged": {
     "*.js": [

@@ -1,6 +1,6 @@
-# DSS Player
+# Player
 
-## com.domain.app.DSSPlayer
+## com.domain.app.Player
 
 ### Getting started
 
